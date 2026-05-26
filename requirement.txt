@@ -1,0 +1,15 @@
+streamlit
+pypdf
+langchain
+langchain-community
+langchain-text-splitters
+langchain-chroma
+langchain-ollama
+langchain-core
+chromadb
+ollama
+python-dotenv
+watchdog
+langgraph
+langsmith
+pydantic
