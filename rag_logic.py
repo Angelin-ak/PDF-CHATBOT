@@ -14,18 +14,29 @@ def load_pdfs(pdf_files):
     """Extracts text from a list of PDF files and returns a list of Document objects."""
     documents = []
     for pdf_file in pdf_files:
-        # pdf_file can be a path or a Streamlit UploadedFile (which is file-like)
-        reader = PdfReader(pdf_file)
-        # Use the name attribute if it's an UploadedFile, otherwise use the path
-        source_name = getattr(pdf_file, "name", "Unknown Source")
-        
-        for i, page in enumerate(reader.pages):
-            text = page.extract_text()
-            if text:
-                documents.append(Document(
-                    page_content=text,
-                    metadata={"source": source_name, "page": i + 1}
-                ))
+        try:
+            # pdf_file can be a path or a Streamlit UploadedFile (which is file-like)
+            reader = PdfReader(pdf_file)
+            # Use the name attribute if it's an UploadedFile, otherwise use the path
+            source_name = getattr(pdf_file, "name", "Unknown Source")
+            
+            if reader.is_encrypted:
+                try:
+                    reader.decrypt("")
+                except Exception:
+                    print(f"Skipping encrypted file: {source_name}")
+                    continue
+
+            for i, page in enumerate(reader.pages):
+                text = page.extract_text()
+                if text:
+                    documents.append(Document(
+                        page_content=text,
+                        metadata={"source": source_name, "page": i + 1}
+                    ))
+        except Exception as e:
+            print(f"Error loading {getattr(pdf_file, 'name', 'file')}: {e}")
+            continue
     return documents
 
 def get_vector_store(documents, embedding_model="nomic-embed-text", persist_directory="./chroma_db"):
@@ -43,7 +54,7 @@ def get_vector_store(documents, embedding_model="nomic-embed-text", persist_dire
     )
     return vector_store
 
-def get_rag_chain(vector_store, llm_model="llama3"):
+def get_rag_chain(vector_store, llm_model="llama3.2"):
     """Creates the RAG chain that returns both the answer and the source documents."""
     llm = Ollama(model=llm_model)
     retriever = vector_store.as_retriever(search_kwargs={"k": 3})
